@@ -48,8 +48,8 @@ class SpotifyClientCredentials(object):
         '''
         # TODO remove stub
         token_info = dict()
-        token_info['access_token'] = 'BQCJTTReyMy5ZJycnu10Go6bR3O8hJ8IZ68vEN3k4kVDHXxSDuBYUSgfYq3JYxt0XKp2DfAb3UWNsg5bOXUNKDZUoQqkoDfxKjXSgLasPB2nvtBwssopNpmS-SGeCCzEntUC4RmyV5B13zPAwIsbvdQP1oU'
-        token_info['refresh_token'] = 'AQBGJQIwLxLK2LlyS0nzFmtiqyrFOKwuXixoF64c-w8B9RyieKg9dFF3Ys9l5-w-nzB4rz-5PB5Dq2qwLsJIdZez4yGpoXqeG0UHV_g-7oImotFWPl6XpFv3cW-RsBE-v2s'
+        token_info['access_token'] = ''
+        token_info['refresh_token'] = ''
 
         token_info = self.refresh_access_token(token_info['refresh_token'])
 
@@ -93,13 +93,11 @@ class SpotifyClientCredentials(object):
 
     @staticmethod
     def get_client_id():
-        return '12389b3e23114f0f9d278063ae5bbbd4'
-        # return os.getenv('SPOTIPY_CLIENT_ID')
+        return os.getenv('SPOTIPY_CLIENT_ID')
 
     @staticmethod
     def get_client_secret():
-        return '96d55481dbbe45c3920555771709b41f'
-        # return os.getenv('SPOTIPY_CLIENT_SECRET')
+        return os.getenv('SPOTIPY_CLIENT_SECRET')
 
 
 # I do not use this in any way. I assume that tokens and refresh are 
