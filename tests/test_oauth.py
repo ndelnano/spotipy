@@ -52,7 +52,6 @@ class OAuthCacheTest(unittest.TestCase):
         is_token_expired.return_value = False
 
         spot = _make_oauth(scope, path)
-        cached_tok = spot.get_cached_token()
 
         opener.assert_called_with(path)
         self.assertIsNotNone(cached_tok)
@@ -73,7 +72,6 @@ class OAuthCacheTest(unittest.TestCase):
         refresh_access_token.return_value = fresh_tok
 
         spot = _make_oauth(scope, path)
-        spot.get_cached_token()
 
         is_token_expired.assert_called_with(expired_tok)
         refresh_access_token.assert_called_with(expired_tok['refresh_token'])
@@ -93,26 +91,10 @@ class OAuthCacheTest(unittest.TestCase):
         is_token_expired.return_value = False
 
         spot = _make_oauth(requested_scope, path)
-        cached_tok = spot.get_cached_token()
 
         opener.assert_called_with(path)
         self.assertIsNone(cached_tok)
         self.assertEqual(refresh_access_token.call_count, 0)
-
-    @patch('spotipy.oauth2.open', create=True)
-    def test_saves_to_cache_path(self, opener):
-        scope = "playlist-modify-private"
-        path = ".cache-username"
-        tok = _make_fake_token(1, 1, scope)
-
-        fi = _fake_file()
-        opener.return_value = fi
-
-        spot = SpotifyOAuth("CLID", "CLISEC", "REDIR", "STATE", scope, path)
-        spot._save_token_info(tok)
-
-        opener.assert_called_with(path, 'w')
-        self.assertTrue(fi.write.called)
 
 
 class TestSpotifyOAuth(unittest.TestCase):

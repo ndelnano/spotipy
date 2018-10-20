@@ -1,2 +1,3 @@
-VERSION='2.0.1'
+VERSION='0.0.0'
+name = 'spotipy'
 from .client import Spotify, SpotifyException

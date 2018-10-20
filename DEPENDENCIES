@@ -1,0 +1,4 @@
+Due to mysqlclient (https://github.com/PyMySQL/mysqlclient-python#prerequisites):
+
+libmysqlclient-dev
+python-dev
