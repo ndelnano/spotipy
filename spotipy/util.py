@@ -46,15 +46,12 @@ def prompt_for_user_token(username, scope=None, client_id = None,
         ''')
         raise spotipy.SpotifyException(550, -1, 'no credentials set')
 
-    cache_path = cache_path or ".cache-" + username
     sp_oauth = oauth2.SpotifyOAuth(client_id, client_secret, redirect_uri, 
-        scope=scope, cache_path=cache_path)
+        scope=scope)
 
     # try to get a valid token for this user, from the cache,
     # if not in the cache, the create a new (this will send
     # the user to a web page where they can authorize this app)
-
-    token_info = sp_oauth.get_cached_token()
 
     if not token_info:
         print('''

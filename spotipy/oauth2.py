@@ -16,70 +16,45 @@ class SpotifyOauthError(Exception):
     pass
 
 
-def _make_authorization_headers(client_id, client_secret):
-    auth_header = base64.b64encode(six.text_type(client_id + ':' + client_secret).encode('ascii'))
-    return {'Authorization': 'Basic %s' % auth_header.decode('ascii')}
-
-
-def is_token_expired(token_info):
-    now = int(time.time())
-    return token_info['expires_at'] - now < 60
-
+# TODO: set client and secret id in env
 
 class SpotifyClientCredentials(object):
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
-    def __init__(self, client_id=None, client_secret=None, proxies=None):
+    def __init__(self, user_id):
         """
-        You can either provid a client_id and client_secret to the
-        constructor or set SPOTIPY_CLIENT_ID and SPOTIPY_CLIENT_SECRET
-        environment variables
+        user_id - id to match entries for user in data store.
+        token_info - Set on first call to get_access_token and updated on following calls when refresh is needed
         """
-        if not client_id:
-            client_id = os.getenv('SPOTIPY_CLIENT_ID')
-
-        if not client_secret:
-            client_secret = os.getenv('SPOTIPY_CLIENT_SECRET')
-
-        if not client_id:
-            raise SpotifyOauthError('No client id')
-
-        if not client_secret:
-            raise SpotifyOauthError('No client secret')
-
-        self.client_id = client_id
-        self.client_secret = client_secret
         self.token_info = None
-        self.proxies = proxies
+
+    def is_token_expired(self, token_info):
+        now = int(time.time())
+        return (token_info['expires_at'] - now) < 60
 
     def get_access_token(self):
         """
-        If a valid access token is in memory, returns it
-        Else feches a new token and returns it
+        Query database for token and last updated
         """
+        ''' TODO:
+        # set 'expires_at', 'refresh_token', and 'access_token'
+        token_info = get_token_data()
+        if token_info['expires_at'] < ( now - 60):
+            # get a new one
+            token_info = self.refresh_access_token(token_info['refresh_token'])
+            # update db
         if self.token_info and not self.is_token_expired(self.token_info):
             return self.token_info['access_token']
+        '''
+        # TODO remove stub
+        token_info = dict()
+        token_info['access_token'] = 'BQCJTTReyMy5ZJycnu10Go6bR3O8hJ8IZ68vEN3k4kVDHXxSDuBYUSgfYq3JYxt0XKp2DfAb3UWNsg5bOXUNKDZUoQqkoDfxKjXSgLasPB2nvtBwssopNpmS-SGeCCzEntUC4RmyV5B13zPAwIsbvdQP1oU'
+        token_info['refresh_token'] = 'AQBGJQIwLxLK2LlyS0nzFmtiqyrFOKwuXixoF64c-w8B9RyieKg9dFF3Ys9l5-w-nzB4rz-5PB5Dq2qwLsJIdZez4yGpoXqeG0UHV_g-7oImotFWPl6XpFv3cW-RsBE-v2s'
 
-        token_info = self._request_access_token()
-        token_info = self._add_custom_values_to_token_info(token_info)
+        token_info = self.refresh_access_token(token_info['refresh_token'])
+
         self.token_info = token_info
         return self.token_info['access_token']
-
-    def _request_access_token(self):
-        """Gets client credentials access token """
-        payload = { 'grant_type': 'client_credentials'}
-
-        headers = _make_authorization_headers(self.client_id, self.client_secret)
-
-        response = requests.post(self.OAUTH_TOKEN_URL, data=payload,
-            headers=headers, verify=True, proxies=self.proxies)
-        if response.status_code != 200:
-            raise SpotifyOauthError(response.reason)
-        token_info = response.json()
-        return token_info
-
-    def is_token_expired(self, token_info):
-        return is_token_expired(token_info)
 
     def _add_custom_values_to_token_info(self, token_info):
         """
@@ -89,7 +64,46 @@ class SpotifyClientCredentials(object):
         token_info['expires_at'] = int(time.time()) + token_info['expires_in']
         return token_info
 
+    def refresh_access_token(self, refresh_token):
+        payload = { 'refresh_token': refresh_token,
+                   'grant_type': 'refresh_token'}
 
+        headers = self._make_authorization_headers()
+
+        response = requests.post(self.OAUTH_TOKEN_URL, data=payload,
+            headers=headers)
+        if response.status_code != 200:
+            if False:  # debugging code
+                print('headers', headers)
+                print('request', response.url)
+            print("couldn't refresh token: code:%d reason:%s" \
+                % (response.status_code, response.reason))
+            return None
+        token_info = response.json()
+        token_info = self._add_custom_values_to_token_info(token_info)
+        if not 'refresh_token' in token_info:
+            token_info['refresh_token'] = refresh_token
+        return token_info
+
+    def _make_authorization_headers(self):
+        client_id = SpotifyClientCredentials.get_client_id()
+        client_secret = SpotifyClientCredentials.get_client_secret()
+        auth_header = base64.b64encode(six.text_type(client_id + ':' + client_secret).encode('ascii'))
+        return {'Authorization': 'Basic %s' % auth_header.decode('ascii')}
+
+    @staticmethod
+    def get_client_id():
+        return '12389b3e23114f0f9d278063ae5bbbd4'
+        # return os.getenv('SPOTIPY_CLIENT_ID')
+
+    @staticmethod
+    def get_client_secret():
+        return '96d55481dbbe45c3920555771709b41f'
+        # return os.getenv('SPOTIPY_CLIENT_SECRET')
+
+
+# I do not use this in any way. I assume that tokens and refresh are 
+# fetchable via the functions: .
 class SpotifyOAuth(object):
     '''
     Implements Authorization Code Flow for Spotify's OAuth implementation.
@@ -99,7 +113,7 @@ class SpotifyOAuth(object):
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
     def __init__(self, client_id, client_secret, redirect_uri,
-            state=None, scope=None, cache_path=None, proxies=None):
+            state=None, scope=None, proxies=None):
         '''
             Creates a SpotifyOAuth object
 
@@ -109,48 +123,14 @@ class SpotifyOAuth(object):
                  - redirect_uri - the redirect URI of your app
                  - state - security state
                  - scope - the desired scope of the request
-                 - cache_path - path to location to save tokens
         '''
 
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.state=state
-        self.cache_path = cache_path
         self.scope=self._normalize_scope(scope)
         self.proxies = proxies
-
-    def get_cached_token(self):
-        ''' Gets a cached auth token
-        '''
-        token_info = None
-        if self.cache_path:
-            try:
-                f = open(self.cache_path)
-                token_info_string = f.read()
-                f.close()
-                token_info = json.loads(token_info_string)
-
-                # if scopes don't match, then bail
-                if 'scope' not in token_info or not self._is_scope_subset(self.scope, token_info['scope']):
-                    return None
-
-                if self.is_token_expired(token_info):
-                    token_info = self.refresh_access_token(token_info['refresh_token'])
-
-            except IOError:
-                pass
-        return token_info
-
-    def _save_token_info(self, token_info):
-        if self.cache_path:
-            try:
-                f = open(self.cache_path, 'w')
-                f.write(json.dumps(token_info))
-                f.close()
-            except IOError:
-                self._warn("couldn't write token cache to " + self.cache_path)
-                pass
 
     def _is_scope_subset(self, needle_scope, haystack_scope):
         needle_scope = set(needle_scope.split()) if needle_scope else set()
@@ -217,7 +197,6 @@ class SpotifyOAuth(object):
             raise SpotifyOauthError(response.reason)
         token_info = response.json()
         token_info = self._add_custom_values_to_token_info(token_info)
-        self._save_token_info(token_info)
         return token_info
 
     def _normalize_scope(self, scope):
@@ -247,7 +226,6 @@ class SpotifyOAuth(object):
         token_info = self._add_custom_values_to_token_info(token_info)
         if not 'refresh_token' in token_info:
             token_info['refresh_token'] = refresh_token
-        self._save_token_info(token_info)
         return token_info
 
     def _add_custom_values_to_token_info(self, token_info):
