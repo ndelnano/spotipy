@@ -21,11 +21,12 @@ class SpotifyOauthError(Exception):
 class SpotifyClientCredentials(object):
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
-    def __init__(self, user_id):
+    def __init__(self, username):
         """
-        user_id - id to match entries for user in data store.
+        username - id of user in data store
         token_info - Set on first call to get_access_token and updated on following calls when refresh is needed
         """
+        self.username = username
         self.token_info = None
 
     def is_token_expired(self, token_info):
