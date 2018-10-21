@@ -1,3 +1,4 @@
+from .db import get_tokens_for_user, update_token_for_user
 
 from __future__ import print_function
 import base64
@@ -7,16 +8,17 @@ import json
 import time
 import sys
 
+from dotenv import load_dotenv
 # Workaround to support both python 2 & 3
 import six
 import six.moves.urllib.parse as urllibparse
 
+# Ensure secrets are loaded
+load_dotenv()
 
 class SpotifyOauthError(Exception):
     pass
 
-
-# TODO: set client and secret id in env
 
 class SpotifyClientCredentials(object):
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
@@ -31,30 +33,27 @@ class SpotifyClientCredentials(object):
 
     def is_token_expired(self, token_info):
         now = int(time.time())
-        return (token_info['expires_at'] - now) < 60
+        return token_info['expires_at'] > now
 
     def get_access_token(self):
         """
-        Query database for token and last updated
+        Query DB for tokens, if token is expired, get refresh it and update DB.
         """
-        ''' TODO:
-        # set 'expires_at', 'refresh_token', and 'access_token'
-        token_info = get_token_data()
-        if token_info['expires_at'] < ( now - 60):
-            # get a new one
-            token_info = self.refresh_access_token(token_info['refresh_token'])
-            # update db
-        if self.token_info and not self.is_token_expired(self.token_info):
-            return self.token_info['access_token']
-        '''
-        # TODO remove stub
-        token_info = dict()
-        token_info['access_token'] = ''
-        token_info['refresh_token'] = ''
+        token_info = get_tokens_for_user(self.username)
 
-        token_info = self.refresh_access_token(token_info['refresh_token'])
+        if self.is_token_expired(token_info):
+            new_token_info = self.refresh_access_token(token_info['refresh_token'])
 
-        self.token_info = token_info
+            print('token object returned from spotify api')
+            print(new_token_info)
+
+            # success = update_token_for_user(self.username, new_token_info)
+
+            print('value returned by update query')
+            # print(success)
+
+            self.token_info = new_token_info
+
         return self.token_info['access_token']
 
     def _add_custom_values_to_token_info(self, token_info):
@@ -94,13 +93,14 @@ class SpotifyClientCredentials(object):
 
     @staticmethod
     def get_client_id():
-        return os.getenv('SPOTIPY_CLIENT_ID')
+        return os.getenv('SPOTIFY_CLIENT_ID')
 
     @staticmethod
     def get_client_secret():
-        return os.getenv('SPOTIPY_CLIENT_SECRET')
+        return os.getenv('SPOTIFY_CLIENT_SECRET')
 
 
+# TODO delete this
 # I do not use this in any way. I assume that tokens and refresh are 
 # fetchable via the functions: .
 class SpotifyOAuth(object):
