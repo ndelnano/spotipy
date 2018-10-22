@@ -65,7 +65,7 @@ class SpotifyClientCredentials(object):
             print('token object returned from spotify api')
             print(new_token_info)
 
-            success = update_token_for_user(self.username, new_token_info)
+            success = self.update_token_for_user(new_token_info)
             print('update return value ' + str(success))
 
             self.token_info = new_token_info
