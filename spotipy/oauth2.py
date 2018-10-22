@@ -7,15 +7,11 @@ import json
 import time
 import sys
 
-from dotenv import load_dotenv
 # Workaround to support both python 2 & 3
 import six
 import six.moves.urllib.parse as urllibparse
 
-from spotipy.db import get_tokens_for_user, update_token_for_user
-
-# Ensure secrets are loaded
-load_dotenv()
+import MySQLdb
 
 # TODO document the auth flow that this code implements
 
@@ -26,12 +22,26 @@ class SpotifyOauthError(Exception):
 class SpotifyClientCredentials(object):
     OAUTH_TOKEN_URL = 'https://accounts.spotify.com/api/token'
 
-    def __init__(self, username):
+    def __init__(self, username, db_creds, spotify_app_creds):
         """
         username - id of user in data store
+        db_creds - dict of form:
+            {
+                'DB_HOST' : '',
+                'DB_USER' : '',
+                'DB_PASS' : '',
+                'DB_NAME' : ''
+            }
+        spotify_app_creds - dict of form:
+            {
+                'SPOTIFY_CLIENT_SECRET : '',
+                'SPOTIFY_CLIENT_ID' : ''
+            }
         token_info - Set on first call to get_access_token and updated on following calls when refresh is needed
         """
         self.username = username
+        self.db_creds = db_creds
+        self.spotify_app_creds = spotify_app_creds
         self.token_info = None
 
     def is_token_expired(self):
@@ -46,7 +56,7 @@ class SpotifyClientCredentials(object):
         """
         Query DB for tokens, if token is expired, get refresh it and update DB.
         """
-        self.token_info = get_tokens_for_user(self.username)
+        self.token_info = self.get_tokens_for_user()
 
         if self.is_token_expired():
             print('UPDATING TOKEN')
@@ -92,15 +102,53 @@ class SpotifyClientCredentials(object):
         return token_info
 
     def _make_authorization_headers(self):
-        client_id = SpotifyClientCredentials.get_client_id()
-        client_secret = SpotifyClientCredentials.get_client_secret()
+        client_id = self.spotify_app_creds['SPOTIFY_CLIENT_ID']
+        client_secret = self.spotify_app_creds['SPOTIFY_CLIENT_SECRET']
         auth_header = base64.b64encode(six.text_type(client_id + ':' + client_secret).encode('ascii'))
         return {'Authorization': 'Basic %s' % auth_header.decode('ascii')}
 
-    @staticmethod
-    def get_client_id():
-        return os.getenv('SPOTIFY_CLIENT_ID')
 
-    @staticmethod
-    def get_client_secret():
-        return os.getenv('SPOTIFY_CLIENT_SECRET')
+    # Functions that access MySQL
+
+
+    def conn(self):
+        return MySQLdb.connect(
+            host=self.db_creds['DB_HOST'],
+            user=self.db_creds['DB_USER'],
+            passwd=self.db_creds['DB_PASS'],
+            db=self.db_creds['DB_NAME']
+        )
+
+    def get_tokens_for_user(self):
+        con = self.conn()
+        cur = MySQLdb.cursors.DictCursor(con)
+        cur.execute("""
+            SELECT 
+                spotify_auth_token, 
+                spotify_refresh_token, 
+                expires_at
+            FROM users
+                WHERE username =%s
+            """, (self.username,))
+        result = cur.fetchone()
+        if not result:
+            print('did not find user in db, exiting')
+            sys.exit(1)
+        else:
+            user = dict()
+            user['refresh_token'] = result['spotify_refresh_token']
+            user['access_token'] = result['spotify_auth_token']
+            user['expires_at'] = result['expires_at']
+            return user
+
+    def update_token_for_user(self, new_token_info):
+        con = self.conn()
+        cur = MySQLdb.cursors.DictCursor(con)
+        cur.execute("""
+            UPDATE users
+            SET 
+                spotify_auth_token = %s,
+                expires_at = %s
+            WHERE username = %s
+            """, (new_token_info['access_token'], str(new_token_info['expires_at']), self.username,))
+        con.commit()
