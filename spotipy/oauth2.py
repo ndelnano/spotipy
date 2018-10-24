@@ -46,10 +46,6 @@ class SpotifyClientCredentials(object):
 
     def is_token_expired(self):
         now = int(time.time())
-
-        # If default value (using for existing users)
-        if(self.token_info['expires_at'] == 0):
-            self.token_info['expires_at'] = 99999999999
         return int(self.token_info['expires_at']) < now
 
     def get_access_token(self):

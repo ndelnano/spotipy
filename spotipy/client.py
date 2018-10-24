@@ -1079,4 +1079,4 @@ class Spotify(object):
         Useful for batching data to endpoints.
         """
         for i in range(0, len(lst), chunk_size):
-            yield l[i:i + n]
+            yield lst[i:i + chunk_size]

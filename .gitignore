@@ -1,5 +1,6 @@
 # Secrets
 .env
+test.py
 
 # venv
 venv/
