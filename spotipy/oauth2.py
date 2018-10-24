@@ -34,8 +34,8 @@ class SpotifyClientCredentials(object):
             }
         spotify_app_creds - dict of form:
             {
-                'SPOTIFY_CLIENT_SECRET : '',
-                'SPOTIFY_CLIENT_ID' : ''
+                'SPOTIFY_CLIENT_ID' : '',
+                'SPOTIFY_CLIENT_SECRET : ''
             }
         token_info - Set on first call to get_access_token and updated on following calls when refresh is needed
         """

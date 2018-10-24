@@ -637,11 +637,26 @@ class Spotify(object):
 
             Parameters:
                 - tracks - a list of track URIs, URLs or IDs
+
+            Return:
+                - list of true|false values in the same order as tracks
+
+            Batch API calls with 50 track_id's at a time per:
+                https://developer.spotify.com/documentation/web-api/reference/library/check-users-saved-tracks/
         """
-        tlist = []
+        MAX_TRACKS_PER_CALL = 50
+        # saved is a list of true/false values in the same order
+        # the tracks were provided
+        saved = []
         if tracks is not None:
-            tlist = [self._get_id('track', t) for t in tracks]
-        return self._get('me/tracks/contains?ids=' + ','.join(tlist))
+            chunks = Spotify.chunks(tracks, MAX_TRACKS_PER_CALL)
+
+            for chunk in chunks:
+                data = self._get('me/tracks/contains?ids=' + ','.join(chunk))
+                for x in data:
+                    saved.append(x)
+
+        return saved
 
     def current_user_saved_tracks_add(self, tracks=None):
         """ Add one or more tracks to the current user's
@@ -1054,3 +1069,14 @@ class Spotify(object):
 
     def _get_uri(self, type, id):
         return 'spotify:' + type + ":" + self._get_id(type, id)
+
+    # https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+    @staticmethod
+    def chunks(lst, chunk_size):
+        """
+        Yield successive n-sized chunks from l.
+
+        Useful for batching data to endpoints.
+        """
+        for i in range(0, len(lst), chunk_size):
+            yield l[i:i + n]
