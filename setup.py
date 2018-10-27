@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='spotipy_ndelnano',
+    name='ndelnano_spotipy',
     version='0.0.2',
     description='simple client for the Spotify Web API, adding mysql for token storage/access',
     author="@ndelnano",
