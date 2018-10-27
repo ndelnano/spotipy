@@ -466,12 +466,11 @@ class Spotify(object):
         chunks = Spotify.chunks(track_uris, MAX_TRACKS_PER_CALL)
 
         for chk in chunks:
-            print('Length for this chunk of tracks')
-            print(len(chk))
             val = self._post("users/%s/playlists/%s/tracks" % (user, playlist_id),
-                payload=track_uris, position=position)
+                payload=chk, position=position)
             if val is None:
                 # TODO: Maybe here we want to delete the playlist, since its creation failed
+                # Probably want to add try: catch to calling the POST
                 raise Exception('Adding tracks to playlist failed. Information: user: {user}, playlist_id: {playlist_id}, position {position}'.format(
                     user=user, playlist_id=playlist_id, position=position
                 ))
