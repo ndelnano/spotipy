@@ -466,6 +466,8 @@ class Spotify(object):
         chunks = Spotify.chunks(track_uris, MAX_TRACKS_PER_CALL)
 
         for chk in chunks:
+            print('Length for this chunk of tracks')
+            print(len(chk))
             val = self._post("users/%s/playlists/%s/tracks" % (user, playlist_id),
                 payload=track_uris, position=position)
             if val is None:
