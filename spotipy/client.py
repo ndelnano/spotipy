@@ -449,20 +449,33 @@ class Spotify(object):
         """
         return self._delete("users/%s/playlists/%s/followers" % (user, playlist_id))
 
-    def user_playlist_add_tracks(self, user, playlist_id, tracks,
-                                 position=None):
+    def user_playlist_add_tracks(self, user, playlist_id, tracks):
         """ Adds tracks to a playlist
+        Batches in sets of 100 due to requirement (https://developer.spotify.com/documentation/web-api/reference/playlists/add-tracks-to-playlist/)
 
             Parameters:
                 - user - the id of the user
                 - playlist_id - the id of the playlist
                 - tracks - a list of track URIs, URLs or IDs
-                - position - the position to add the tracks
         """
-        plid = self._get_id('playlist', playlist_id)
-        ftracks = [self._get_uri('track', tid) for tid in tracks]
-        return self._post("users/%s/playlists/%s/tracks" % (user, plid),
-                          payload=ftracks, position=position)
+        MAX_TRACKS_PER_CALL = 100
+        position = 0
+        # Sometimes spotify wants just the track_id, here they want the 'uri',
+        # or the track_id prepended by 'spotify:track:'
+        track_uris = [('spotify:track:') + x for x in tracks]
+        chunks = Spotify.chunks(track_uris, MAX_TRACKS_PER_CALL)
+
+        for chk in chunks:
+            val = self._post("users/%s/playlists/%s/tracks" % (user, playlist_id),
+                payload=track_uris, position=position)
+            if val is None:
+                # TODO: Maybe here we want to delete the playlist, since its creation failed
+                raise Exception('Adding tracks to playlist failed. Information: user: {user}, playlist_id: {playlist_id}, position {position}'.format(
+                    user=user, playlist_id=playlist_id, position=position
+                ))
+            position += 100
+
+        return val
 
     def user_playlist_replace_tracks(self, user, playlist_id, tracks):
         """ Replace all tracks in a playlist
@@ -651,8 +664,8 @@ class Spotify(object):
         if tracks is not None:
             chunks = Spotify.chunks(tracks, MAX_TRACKS_PER_CALL)
 
-            for chunk in chunks:
-                data = self._get('me/tracks/contains?ids=' + ','.join(chunk))
+            for chk in chunks:
+                data = self._get('me/tracks/contains?ids=' + ','.join(chk))
                 for x in data:
                     saved.append(x)
 
