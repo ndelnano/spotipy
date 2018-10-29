@@ -55,15 +55,8 @@ class SpotifyClientCredentials(object):
         self.token_info = self.get_tokens_for_user()
 
         if self.is_token_expired():
-            print('UPDATING TOKEN')
             new_token_info = self.refresh_access_token(self.token_info['refresh_token'])
-
-            print('token object returned from spotify api')
-            print(new_token_info)
-
-            success = self.update_token_for_user(new_token_info)
-            print('update return value ' + str(success))
-
+            self.update_token_for_user(new_token_info)
             self.token_info = new_token_info
 
         return self.token_info['access_token']
@@ -104,8 +97,10 @@ class SpotifyClientCredentials(object):
         return {'Authorization': 'Basic %s' % auth_header.decode('ascii')}
 
 
-    # Functions that access MySQL
-
+    '''
+    BEGIN: Functions that access MySQL
+    If you want to implement your own data store, replace these!
+    '''
 
     def conn(self):
         return MySQLdb.connect(
