@@ -1,31 +1,31 @@
-# Spotipy - a Python client for The Spotify Web API
+# ndelnano-spotipy - a Python client for The Spotify Web API, which fetches and saves OAuth tokens in MySQL.
+pip install ndelnano-spotipy
 
 ## Description
 
-Spotipy is a thin client library for the Spotify Web API.
+ndelnano-spotipy is a fork of spotipy, which is a thin client library for the Spotify Web API.
 
 ## Differences in this fork!
 
 Currently two things:
 
-* Batching data to endpoints used in the playlist-maker. So far these endpoints include: checking saved tracks in user library, adding tracks to a user's playlist. There is likely more to come as that project progresses.
-* Support for storing and updating user's access and refresh tokens in MySQL
+* Batching data to endpoints used in the recently-played-playlists. So far these endpoints include: checking saved tracks in user library, adding tracks to a user's playlist. There is likely more to come as that project progresses.
+* Support for refreshing and storing user's OAuth tokens in MySQL. When an API call fails due to an expired token, ndelnano-spotipy refreshed the token, stores the new token in MySQL, and retries. See the schema of recently-played-playlists in its root directory.
 
-To get jump started, do something like:
+To get started:
 
 ```
-credentials = SpotifyClientCredentials(
-    username, 
-    db_creds=db.db.get_db_creds(),
-    spotify_app_creds=get_spotify_app_creds()
-)
-spotify = spotipy.Spotify(client_credentials_manager=credentials)
-```
+def get_spotify_client_for_username(username):
+    credentials = SpotifyClientCredentials(
+        username,
+        db_creds=db.db.get_db_creds(),
+        spotify_app_creds=get_spotify_app_creds()
+    )
 
-What are the parameters to SpotifyClientCredentials? (also documented in spotipy/oauth2.py)
+return spotipy.Spotify(client_credentials_manager=credentials)
 ```
-username - uniquely identifies user in MySQL table `users`, column `username`
-    **the schema for this project is maintained in TODO fill this in here when I upload the schema
+All you need is the `username` UNIQUE KEY from the `users` table to get an API client!
+
 db_creds - dict of form:
     {
         'DB_HOST' : '',
@@ -38,6 +38,7 @@ spotify_app_creds - dict of form:
         'SPOTIFY_CLIENT_ID' : '',
         'SPOTIFY_CLIENT_SECRET : ''
     }
+These are credentials from your Spotify developer application.
 ```
 
 ## Documentation
