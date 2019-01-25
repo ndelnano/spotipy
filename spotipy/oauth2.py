@@ -55,6 +55,7 @@ class SpotifyClientCredentials(object):
         self.token_info = self.get_tokens_for_user()
 
         if self.is_token_expired():
+            print('Spotify API token has expired, refreshing...')
             new_token_info = self.refresh_access_token(self.token_info['refresh_token'])
             self.update_token_for_user(new_token_info)
             self.token_info = new_token_info

@@ -33,6 +33,7 @@ db_creds - dict of form:
         'DB_PASS' : '',
         'DB_NAME' : ''
     }
+
 spotify_app_creds - dict of form:
     {
         'SPOTIFY_CLIENT_ID' : '',
